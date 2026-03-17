@@ -2,12 +2,12 @@ from fastapi import APIRouter
 from api_schema import DeepDiveRequest, DeepDiveResponse, SourceCitation
 import uuid
 import os
-from anthropic import AsyncAnthropic
+from groq import AsyncGroq
 from services.vector_store import supabase
 from services.embedder import get_embeddings_with_backoff
 
 router = APIRouter()
-anthropic_client = AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+groq_client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
 
 async def perform_similarity_search(query_embedding: list, chapter_id: str, limit: int = 5):
     """Hits the Supabase pgvector RPC function to find similar chunks."""
@@ -50,10 +50,10 @@ async def rag_query(request: DeepDiveRequest, chapter_id: str):
     if not context_text:
         context_text = "No relevant context found in the course material."
 
-    # 4. Generate answer with Claude
+    # 4. Generate answer with Groq
     system_prompt = "You are a helpful AI tutor for the LearnForge platform. Answer the user's question using ONLY the provided course material text. If the answer is not in the material, say so."
     
-    messages = []
+    messages = [{"role": "system", "content": system_prompt}]
     for msg in request.history[-5:]: # Keep last 5 messages for context
         messages.append({"role": msg.role, "content": msg.content})
         
@@ -63,13 +63,11 @@ async def rag_query(request: DeepDiveRequest, chapter_id: str):
     })
     
     try:
-        response = await anthropic_client.messages.create(
-            model="claude-3-haiku-20240307",
-            max_tokens=1000,
-            system=system_prompt,
+        response = await groq_client.chat.completions.create(
+            model="llama3-70b-8192",
             messages=messages
         )
-        answer = response.content[0].text
+        answer = response.choices[0].message.content
     except Exception as e:
         answer = "I'm sorry, I encountered an error generating an answer."
         

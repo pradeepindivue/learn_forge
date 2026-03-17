@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 export default function NewCoursePage() {
   const router = useRouter()
+  const [title, setTitle] = useState('')
   const [sources, setSources] = useState([{ type: 'youtube', value: '' }])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -30,6 +31,12 @@ export default function NewCoursePage() {
     setIsSubmitting(true)
     setError(null)
     
+    if (!title.trim()) {
+      setError('Please enter a course title.')
+      setIsSubmitting(false)
+      return
+    }
+
     // Filter out empty sources
     const validSources = sources.filter(s => s.value.trim().length > 0)
     
@@ -43,7 +50,7 @@ export default function NewCoursePage() {
       const courseRes = await fetch('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'New Draft Course' })
+        body: JSON.stringify({ title: title.trim() })
       })
       
       if (!courseRes.ok) {
@@ -90,7 +97,22 @@ export default function NewCoursePage() {
       <p className="text-neutral-600 mb-8">Add links to YouTube videos, articles, or paste your own notes.</p>
       
       <form onSubmit={handleSubmit} className="bg-white border rounded-xl shadow-sm p-6">
+        <div className="mb-8 p-4 bg-neutral-50 rounded-lg border border-neutral-100">
+          <label className="block text-sm font-bold text-neutral-700 mb-2">
+            Course Title
+          </label>
+          <input 
+            type="text"
+            className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            placeholder="e.g. Intro to Quantum Physics"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            required
+          />
+        </div>
+
         <div className="space-y-4 mb-8">
+          <h3 className="text-sm font-bold text-neutral-700 uppercase tracking-wider">Content Sources</h3>
           {sources.map((source, idx) => (
             <div key={idx} className="flex gap-3 items-start">
               <div className="w-32 shrink-0 pt-2">

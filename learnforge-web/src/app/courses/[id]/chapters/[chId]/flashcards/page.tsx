@@ -19,13 +19,30 @@ export default function FlashcardsPage() {
   const [isFlipped, setIsFlipped] = useState(false)
 
   useEffect(() => {
-    // Scaffold: Fetch Flashcards Data
-    setTimeout(() => {
-      setCards([
-        { id: '1', front: 'What is the primary constraint mentioned?', back: 'Rate limiting on the API calls.', status: 'unseen' },
-        { id: '2', front: 'Define the core concept.', back: 'It is a mechanism for embedding text into vector space.', status: 'unseen' }
-      ])
-    }, 1000)
+    async function fetchFlashcards() {
+      try {
+        const response = await fetch('http://localhost:8002/generate/flashcards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chapter_id: chId })
+        })
+        const data = await response.json()
+        if (data.flashcards) {
+          setCards(data.flashcards.map((c: any, i: number) => ({
+            id: String(i),
+            front: c.front,
+            back: c.back,
+            status: 'unseen'
+          })))
+        }
+      } catch (err) {
+        console.error('Failed to fetch flashcards:', err)
+      }
+    }
+
+    if (chId) {
+      fetchFlashcards()
+    }
   }, [chId])
 
   const activeCard = cards[currentIndex]

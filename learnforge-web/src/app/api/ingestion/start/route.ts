@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     // Call the internal FastAPI service
     // In production, NEXT_PUBLIC_AI_API_URL would point to the deployed Python service
-    const aiServiceUrl = process.env.NEXT_PUBLIC_AI_API_URL || 'http://localhost:8000'
+    const aiServiceUrl = process.env.NEXT_PUBLIC_AI_API_URL || 'http://localhost:8002'
     const res = await fetch(`${aiServiceUrl}/ingest/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

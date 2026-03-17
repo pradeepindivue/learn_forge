@@ -21,13 +21,30 @@ export default function QuizPage() {
   const [score, setScore] = useState(0)
 
   useEffect(() => {
-    // Scaffold: Fetch quiz Data
-    setTimeout(() => {
-      setQuestions([
-        { id: '1', text: 'Which of the following is the main building block?', type: 'mcq', options: ['A', 'B', 'C', 'D'] },
-        { id: '2', text: 'Explain the core limitation in one sentence.', type: 'short_answer' }
-      ])
-    }, 1000)
+    async function fetchQuiz() {
+      try {
+        const response = await fetch('http://localhost:8002/generate/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chapter_id: chId })
+        })
+        const data = await response.json()
+        if (data.questions) {
+          setQuestions(data.questions.map((q: any, i: number) => ({
+            id: String(i),
+            text: q.text,
+            type: q.type || 'mcq',
+            options: q.options
+          })))
+        }
+      } catch (err) {
+        console.error('Failed to fetch quiz:', err)
+      }
+    }
+
+    if (chId) {
+      fetchQuiz()
+    }
   }, [chId])
 
   const handleSubmit = (e: React.FormEvent) => {

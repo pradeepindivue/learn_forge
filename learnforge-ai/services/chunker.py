@@ -48,9 +48,11 @@ def chunk_text(text: str, source_type: str, chunk_size: int = MAX_TOKENS, chunk_
             })
             index += 1
             
+        previous_start = start
         start = end - char_overlap
-        # Ensure we always move forward to prevent infinite loops (if overlap is >= size)
-        if start <= end - char_size: 
+        
+        # Ensure we always move forward to prevent infinite loops (if overlap is >= size or end was adjusted heavily)
+        if start <= previous_start: 
             start = end
             
     return chunks

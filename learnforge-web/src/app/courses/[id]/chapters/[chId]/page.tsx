@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@/utils/supabase/client'
 
 export default function ChapterLearningPage() {
   const { id, chId } = useParams()
@@ -10,20 +11,38 @@ export default function ChapterLearningPage() {
   const [chatMessage, setChatMessage] = useState('')
   const [chatHistory, setChatHistory] = useState<any[]>([])
 
+  const supabase = createClient()
+
   useEffect(() => {
-    // Scaffold: Fetch chapter summary & concepts via API
-    setTimeout(() => {
-      setData({
-        title: 'Core Concepts',
-        summary: 'This chapter covers the fundamental building blocks of the subject matter, derived directly from the video transcripts and article texts provided.',
-        key_concepts: [
-          'Understand the foundational definitions.',
-          'Identify the primary use cases.',
-          'Acknowledge the constraints and limitations.'
-        ]
-      })
-    }, 1000)
-  }, [chId])
+    async function fetchChapter() {
+      const { data: chapter, error } = await supabase
+        .from('chapters')
+        .select('*')
+        .eq('id', chId)
+        .single()
+      
+      if (error) {
+        console.error('Error fetching chapter:', error)
+        return
+      }
+
+      if (chapter) {
+        setData({
+          title: chapter.title,
+          summary: chapter.summary,
+          key_concepts: chapter.key_concepts || [
+            'Understand the core principles presented in this chapter.',
+            'Apply the concepts to practical examples.',
+            'Identify key takeaways and their implications.'
+          ]
+        })
+      }
+    }
+
+    if (chId) {
+      fetchChapter()
+    }
+  }, [chId, supabase])
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,14 +52,29 @@ export default function ChapterLearningPage() {
     setChatHistory([...chatHistory, userMsg])
     setChatMessage('')
     
-    // Scaffold: simulate Deep Dive RAG API response
-    setTimeout(() => {
+    // Real Deep Dive RAG API
+    try {
+      const response = await fetch('http://localhost:8002/generate/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chapter_id: chId, question: userMsg.content })
+      })
+      const data = await response.json()
+      if (data.answer) {
+        setChatHistory(prev => [...prev, { 
+          role: 'assistant', 
+          content: data.answer, 
+          id: Date.now() 
+        }])
+      }
+    } catch (err) {
+      console.error('Chat error:', err)
       setChatHistory(prev => [...prev, { 
         role: 'assistant', 
-        content: `Based on the source context, here is a detailed answer to "${userMsg.content}".`, 
+        content: "Sorry, I'm having trouble connecting to the knowledge base right now.", 
         id: Date.now() 
       }])
-    }, 800)
+    }
   }
 
   if (!data) return <div className="p-8 text-center text-neutral-500">Generating chapter content...</div>
@@ -64,7 +98,7 @@ export default function ChapterLearningPage() {
         <section className="bg-white border rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-bold mb-4">Key Concepts</h2>
           <ul className="list-disc pl-5 space-y-2 text-neutral-700">
-            {data.key_concepts.map((concept: str, i: number) => (
+            {data.key_concepts.map((concept: string, i: number) => (
               <li key={i}>{concept}</li>
             ))}
           </ul>
